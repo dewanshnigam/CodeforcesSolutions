@@ -1,0 +1,334 @@
+// https://codeforces.com/contest/1519/problem/D
+
+
+import java.util.*;
+import java.io.*;
+import static java.lang.Math.*;
+public class D
+{
+    static InputReader in=new InputReader(System.in);
+    static OutputWriter out=new OutputWriter(System.out);
+    static StringBuilder sb=new StringBuilder();
+    static long MOD = (long)(998244353);
+    static int MAX = (int)(1e5);
+    static int dp[][][];
+
+    // Main Class Starts Here
+    public static void main(String[] args)throws IOException
+    {
+        // Write your code.
+
+        // https://codeforces.com/contest/1549/problem/D
+        // https://codeforces.com/contest/1493/problem/D
+
+        int t = 1;
+        while(t-->0) {
+
+            int n = in();
+            long ar[] = lan(n);
+            long br[] = lan(n);
+
+            // let's say the reverse subarray is of length odd.
+            int odd_subarray_start = -1;
+            int odd_subarray_end = -1;
+            long odd_max = 0L;
+            for(int i = 0; i < n ; i++){
+                // taking this index as mid of odd subarray.
+                int l = i-1;
+                int r = i+1;
+                long temp = 0L;
+                while(l >= 0 && r < n){
+                    // can you include l and r in reverse ?
+                    temp += (ar[l] - ar[r]) * (br[r] - br[l]);
+                    if(temp > odd_max){
+                        odd_max = temp;
+                        odd_subarray_end = r;
+                        odd_subarray_start = l;
+                    }
+                    l--;
+                    r++;
+                }
+            }
+
+            // prln("Odd max: "+odd_max+" , "+odd_subarray_start+" , "+odd_subarray_end);
+
+
+            // let's say the reverse subarray is of length even.
+            int even_subarray_start = -1;
+            int even_subarray_end = -1;
+            long even_max = 0L;
+            for(int i = 0 ;i < n-1; i++){
+                int l = i - 1;
+                int r = i + 2;
+                long temp = (ar[i] - ar[i+1]) * (br[i+1] - br[i]);
+                if(temp > even_max){
+                    even_max = temp;
+                    even_subarray_start = i;
+                    even_subarray_end = i+1;
+                }
+                while(l >= 0 && r < n){
+                    // can you include l and r in reverse ?
+                    temp += (ar[l] - ar[r]) * (br[r] - br[l]);
+                    if(temp > even_max){
+                        even_max = temp;
+                        even_subarray_end = r;
+                        even_subarray_start = l;
+                    }
+                    l--;
+                    r++;
+                }
+            }
+
+            // prln("Even max: "+even_max+" , "+even_subarray_start+" , "+even_subarray_end);
+
+            if(even_max > odd_max){
+                app(reverseOutput(even_subarray_start, even_subarray_end, ar, br)+"\n");
+            }
+            else if(even_max < odd_max){
+                app(reverseOutput(odd_subarray_start, odd_subarray_end, ar, br)+"\n");
+            }
+            else{
+                // check which one is better.
+                long val1 = reverseOutput(even_subarray_start, even_subarray_end, ar, br);
+                long val2 = reverseOutput(odd_subarray_start, odd_subarray_end, ar, br);
+                if(val1 > val2){
+                    app(val1+"\n");
+                }
+                else{
+                    app(val2+"\n");
+                }
+            }
+
+
+        }
+        out.printLine(sb);
+        out.close();
+    }
+
+    public static long reverseOutput(int i, int j, long a[], long b[]){
+        long res = 0L;
+        for(int x = 0 ; x < i ; x++)
+            res += (a[x] * b[x]);
+        for(int x = j + 1; x < a.length; x++)
+            res += (a[x] * b[x]);
+
+        if(i > -1 && j > -1){
+            while(i < j){
+                res += (a[i] * b[j]) + (a[j] * b[i]);
+                j--;
+                i++;
+            }
+            if(i == j){
+                res += (a[i] * b[j]);
+            }
+        }
+        return res;
+    }
+
+    static class Element{
+        long val;
+        List<Integer> listIndex;
+        public Element(long val, List<Integer> list){
+            this.val = val;
+            this.listIndex = list;
+        }
+
+        @Override
+        public String toString(){
+            return "("+val+" , "+listIndex+")";
+        }
+    }
+
+    static class Frequency{
+        long val;
+        List<Integer> listIndex;
+        public Frequency(long val, List<Integer> list){
+            this.val = val;
+            this.listIndex = list;
+        }
+
+        @Override
+        public String toString(){
+            return "("+val+" , "+listIndex+")";
+        }
+    }
+
+    public static String atsi(int a[]){
+        return Arrays.toString(a);
+    }
+
+    public static String atsl(long a[]){
+        return Arrays.toString(a);
+    }
+
+    public static long gcd(long a, long b){
+        if(b == 0) return a;
+        return gcd(b, a % b);
+    }
+
+    public static int[] an(int n) {
+        int ar[]=new int[n];
+        for(int i=0;i<n;i++)
+            ar[i]=in();
+        return ar;
+    }
+
+    public static long[] lan(int n) {
+        long ar[]=new long[n];
+        for(int i=0;i<n;i++)
+            ar[i]=lin();
+        return ar;
+    }
+
+    public static String atos(Object ar[]) {
+        return Arrays.toString(ar);
+    }
+
+    public static int in() {
+        return in.readInt();
+    }
+
+    public static long lin() {
+        return in.readLong();
+    }
+
+    public static String sn() {
+        return in.readString();
+    }
+
+    public static void prln(Object o) {
+        out.printLine(o);
+    }
+
+    public static void prn(Object o) {
+        out.print(o);
+    }
+
+    public static void app(Object o) {
+        sb.append(o);
+    }
+
+
+    static class InputReader {
+        private InputStream stream;
+        private byte[] buf = new byte[1024];
+        private int curChar;
+        private int numChars;
+        private SpaceCharFilter filter;
+
+        public InputReader(InputStream stream) {
+            this.stream = stream;
+        }
+
+        public int read() {
+            if (numChars == -1)
+                throw new InputMismatchException();
+            if (curChar >= numChars) {
+                curChar = 0;
+                try {
+                    numChars = stream.read(buf);
+                } catch (IOException e) {
+                    throw new InputMismatchException();
+                }
+                if (numChars <= 0)
+                    return -1;
+            }
+            return buf[curChar++];
+        }
+
+        public int readInt() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            int res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public long readLong() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            long res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public String readString() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            StringBuilder res = new StringBuilder();
+            do {
+                res.appendCodePoint(c);
+                c = read();
+            } while (!isSpaceChar(c));
+            return res.toString();
+        }
+
+        public boolean isSpaceChar(int c) {
+            if (filter != null)
+                return filter.isSpaceChar(c);
+            return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == -1;
+        }
+
+        public String next() {
+            return readString();
+        }
+
+        public interface SpaceCharFilter {
+            public boolean isSpaceChar(int ch);
+        }
+    }
+
+    static class OutputWriter {
+        private final PrintWriter writer;
+
+        public OutputWriter(OutputStream outputStream) {
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(outputStream)));
+        }
+
+        public OutputWriter(Writer writer) {
+            this.writer = new PrintWriter(writer);
+        }
+
+        public void print(Object...objects) {
+            for (int i = 0; i < objects.length; i++) {
+                if (i != 0)
+                    writer.print(' ');
+                writer.print(objects[i]);
+            }
+        }
+
+        public void printLine(Object...objects) {
+            print(objects);
+            writer.println();
+        }
+
+        public void close() {
+            writer.close();
+        }
+    }
+}
