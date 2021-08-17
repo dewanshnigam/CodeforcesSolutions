@@ -1,0 +1,443 @@
+// https://codeforces.com/contest/1559/problem/D1
+
+import java.util.*;
+import java.io.*;
+
+public class D
+{
+    static InputReader in=new InputReader(System.in);
+    static OutputWriter out=new OutputWriter(System.out);
+    static StringBuilder sb=new StringBuilder();
+    static int n;
+    static int m1;
+    static int m2;
+
+    // Main Class Starts Here
+    public static void main(String[] args)throws IOException
+    {
+        // Write your code.
+
+        int t = 1;
+        while(t-->0) {
+            n = in();
+            m1 = in();
+            m2 = in();
+
+            // initialise graphs
+            ArrayList<ArrayList<Integer>> a = new ArrayList<>();
+            for(int i = 0; i < n; i++){
+                a.add(new ArrayList<>());
+            }
+
+            List<List<Integer>> b = new ArrayList<>();
+            for(int i = 0; i < n; i++){
+                b.add(new ArrayList<>());
+            }
+
+
+            DisjointSet disA = new DisjointSet(n);
+
+            // fill graphs
+            for(int i = 0 ;i < m1; i++){
+                int u = in() - 1;
+                int v = in() - 1;
+                a.get(u).add(v);
+                a.get(v).add(u);
+                disA.mergeComponents(u, v);
+            }
+
+            DisjointSet disB = new DisjointSet(n);
+
+            for(int i = 0 ;i < m2; i++){
+                int u = in() - 1;
+                int v = in() - 1;
+                b.get(u).add(v);
+                b.get(v).add(u);
+                disB.mergeComponents(u, v);
+            }
+
+            int componentsOfA = disA.countComponents() - 1;
+            int componentsOfB = disB.countComponents() - 1;
+
+            // prln("Components of A : "+componentsOfA+"\n"+"Components of B : "+componentsOfB+"\n");
+
+            HashMap<Integer, List<Integer>> Acomponents = disA.getComponents();
+            HashMap<Integer, List<Integer>> Bcomponents = disB.getComponents();
+
+            // prln("A's components\n"+Acomponents+"\n\nB's components\n"+Bcomponents);
+
+            int edgesAdded = 0;
+            List<Pair> edges = new ArrayList<>();
+
+            outer:
+            for(int i = 0; i < n; i++){
+                for(int j = i+1; j <n; j++){
+                    if(componentsOfA ==0 || componentsOfB == 0) break outer;
+                    // if edge in different components of both graphs.
+                    boolean inA = disA.inSameComponents(i, j);
+                    boolean inB = disB.inSameComponents(i, j);
+                    if((!inA) && (!inB)){
+                        componentsOfA -= disA.mergeComponents(i,j);
+                        componentsOfB -= disB.mergeComponents(i,j);
+                        Pair toAddEdge = new Pair(i+1, j+1);
+                        edges.add(toAddEdge);
+                        edgesAdded++;
+                        // prln("Edge : "+toAddEdge+"\nA components : "+disA.getComponents()+ "\nB components : "+disB.getComponents());
+                    }
+                }
+            }
+            app(edgesAdded+"\n");
+            if(edgesAdded > 0){
+                for(Pair x: edges){
+                    app(x.x+" "+x.y+"\n");
+                }
+            }
+        }
+        out.printLine(sb);
+        out.close();
+    }
+
+    static class Pair{
+        int x, y;
+        public Pair(int x, int y){
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public String toString(){
+            return "("+x+","+y+")";
+        }
+    }
+
+    static class DisjointSet{
+        int parent[];
+        int rank[];
+        int size;
+
+        public DisjointSet(int n){
+            this.parent = new int[n];
+            this.rank = new int[n];
+            this.size = n;
+            for(int i = 0; i < n; i++)
+                parent[i] = i;
+        }
+
+        public int findParent(int x){
+            if(parent[x] != x){
+                return parent[x] = findParent(parent[x]);
+            }
+            return parent[x];
+        }
+
+        public boolean inSameComponents(int x, int y){
+            int parentX = findParent(x);
+            int parentY = findParent(y);
+            return parentX == parentY;
+        }
+
+        public int mergeComponents(int x, int y){
+            int parentX = findParent(x);
+            int parentY = findParent(y);
+            if(parentX == parentY) {
+                return 0; // merge failed as in the same components hence no change in components
+            }
+            if(rank[parentX] < rank[parentY]){
+                parent[parentX] = parentY;
+            }
+            else if(rank[parentX] > rank[parentY]){
+                parent[parentY] = parentX;
+            }
+            else{
+                // merge component of y to x.
+                parent[parentY] = parentX;
+                rank[parentX]++;
+            }
+            return 1; // merge successful - decrease in merge components
+        }
+
+        public int countComponents(){
+            int count = 0;
+            for(int i = 0; i < size; i++)
+                if(parent[i] == i) count++;
+            return count;
+        }
+
+        public HashMap<Integer, List<Integer>> getComponents(){
+            HashMap<Integer, List<Integer>> componentMap = new HashMap<>();
+
+            for(int i = 0; i < size; i++){
+                List<Integer> componentElements = componentMap.getOrDefault(parent[i], new ArrayList<>());
+                componentElements.add(i);
+                componentMap.put(parent[i], componentElements);
+            }
+
+            return componentMap;
+        }
+    }
+
+    // segment tree.
+    static class SegmentTree{
+        int size;
+        List<Integer> st[];
+        int n;
+        public SegmentTree(int a[], int n){
+            int x = (int)Math.ceil((Math.log(n) / Math.log(2)));
+            this.size = (int)Math.pow(2, 2 * x) - 1;
+            st = new ArrayList[size];
+            buildTree(0, n-1, 0, a);
+            this.n = n;
+        }
+
+        public List<Integer> buildTree(int l, int r, int curIndex, int a[]){
+            if(l == r){
+                st[curIndex] =  new ArrayList<>();
+                st[curIndex].add(a[l]);
+                return st[curIndex];
+            }
+            int mid = (l + r) / 2;
+            List<Integer> leftList = buildTree(l, mid, 2 * curIndex + 1, a);
+            List<Integer> rightList = buildTree(mid + 1, r, 2 * curIndex + 2, a);
+            int lastLeftProduct = leftList.get(leftList.size() - 1);
+            int firstRightProduct = rightList.get(0);
+            int gcd = gcd(lastLeftProduct, firstRightProduct);
+            if(gcd > 1){
+                st[curIndex] = new ArrayList<>(leftList);
+                st[curIndex].addAll(rightList);
+            }
+            else{
+                st[curIndex] = new ArrayList<>();
+                for(int i = 0; i < leftList.size() - 1; i++)
+                    st[curIndex].add(leftList.get(i));
+                st[curIndex].add(lastLeftProduct * firstRightProduct);
+                for(int i = 1 ; i < rightList.size(); i++)
+                    st[curIndex].add((rightList.get(i)));
+            }
+            return st[curIndex];
+        }
+
+        public int resolveQuery(int ql, int qr){
+            List<Integer> ans = mergeRanges(0, n-1, ql, qr, 0);
+            return ans.size();
+        }
+
+        public List<Integer> mergeRanges(int l, int r, int ql, int qr, int curIndex){
+            if(l > qr || r < ql) return null;
+            if(ql <= l && qr >= r){
+                return st[curIndex];
+            }
+            int mid = (l + r) / 2;
+            List<Integer> leftList = mergeRanges(l, mid, ql, qr, 2 * curIndex + 1);
+            List<Integer> rightList = mergeRanges(mid + 1, r, ql, qr, 2 * curIndex + 2);
+            if(leftList != null && rightList != null){
+                int lastLeftProduct = leftList.get(leftList.size() - 1);
+                int firstRightProduct = rightList.get(0);
+                int gcd = gcd(lastLeftProduct, firstRightProduct);
+                List<Integer> mergedList = new ArrayList<>();
+                if(gcd > 1){
+                    mergedList.addAll(leftList);
+                    mergedList.addAll(rightList);
+                }
+                else{
+                    for(int i = 0; i < leftList.size() - 1; i++)
+                        mergedList.add(leftList.get(i));
+                    mergedList.add(lastLeftProduct * firstRightProduct);
+                    for(int i = 1 ; i < rightList.size(); i++)
+                        mergedList.add((rightList.get(i)));
+                }
+                return mergedList;
+            }
+            else if(leftList != null) return leftList;
+            else return rightList;
+        }
+
+        public void printTree(){
+            for(int i = 0; i < st.length; i++)
+                prln(i+" , "+st[i]);
+        }
+    }
+
+    public static String atsi(int a[]){
+        return Arrays.toString(a);
+    }
+
+    public static String atsl(long a[]){
+        return Arrays.toString(a);
+    }
+
+    public static long gcd(long a, long b){
+        if(b == 0) return a;
+        return gcd(b, a % b);
+    }
+
+    public static int gcd(int a, int b){
+        if(b == 0) return a;
+        return gcd(b, a % b);
+    }
+
+    public static int[] an(int n) {
+        int ar[]=new int[n];
+        for(int i=0;i<n;i++)
+            ar[i]=in();
+        return ar;
+    }
+
+    public static long[] lan(int n) {
+        long ar[]=new long[n];
+        for(int i=0;i<n;i++)
+            ar[i]=lin();
+        return ar;
+    }
+
+    public static String atos(Object ar[]) {
+        return Arrays.toString(ar);
+    }
+
+    public static int in() {
+        return in.readInt();
+    }
+
+    public static long lin() {
+        return in.readLong();
+    }
+
+    public static String sn() {
+        return in.readString();
+    }
+
+    public static void prln(Object o) {
+        out.printLine(o);
+    }
+
+    public static void prn(Object o) {
+        out.print(o);
+    }
+
+    public static void app(Object o) {
+        sb.append(o);
+    }
+
+
+    static class InputReader {
+        private InputStream stream;
+        private byte[] buf = new byte[1024];
+        private int curChar;
+        private int numChars;
+        private SpaceCharFilter filter;
+
+        public InputReader(InputStream stream) {
+            this.stream = stream;
+        }
+
+        public int read() {
+            if (numChars == -1)
+                throw new InputMismatchException();
+            if (curChar >= numChars) {
+                curChar = 0;
+                try {
+                    numChars = stream.read(buf);
+                } catch (IOException e) {
+                    throw new InputMismatchException();
+                }
+                if (numChars <= 0)
+                    return -1;
+            }
+            return buf[curChar++];
+        }
+
+        public int readInt() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            int res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public long readLong() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            long res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public String readString() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            StringBuilder res = new StringBuilder();
+            do {
+                res.appendCodePoint(c);
+                c = read();
+            } while (!isSpaceChar(c));
+            return res.toString();
+        }
+
+        public boolean isSpaceChar(int c) {
+            if (filter != null)
+                return filter.isSpaceChar(c);
+            return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == -1;
+        }
+
+        public String next() {
+            return readString();
+        }
+
+        public interface SpaceCharFilter {
+            public boolean isSpaceChar(int ch);
+        }
+    }
+
+    static class OutputWriter {
+        private final PrintWriter writer;
+
+        public OutputWriter(OutputStream outputStream) {
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(outputStream)));
+        }
+
+        public OutputWriter(Writer writer) {
+            this.writer = new PrintWriter(writer);
+        }
+
+        public void print(Object...objects) {
+            for (int i = 0; i < objects.length; i++) {
+                if (i != 0)
+                    writer.print(' ');
+                writer.print(objects[i]);
+            }
+        }
+
+        public void printLine(Object...objects) {
+            print(objects);
+            writer.println();
+        }
+
+        public void close() {
+            writer.close();
+        }
+    }
+}
