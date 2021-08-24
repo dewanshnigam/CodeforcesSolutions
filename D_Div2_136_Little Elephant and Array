@@ -1,0 +1,402 @@
+// https://codeforces.com/contest/221/problem/D
+
+import java.util.*;
+import java.io.*;
+
+public class D
+{
+    static InputReader in=new InputReader(System.in);
+    static OutputWriter out=new OutputWriter(System.out);
+    static StringBuilder sb=new StringBuilder();
+    static int MAX = 100000 + 5;
+    static int n;
+    // Main Class Starts Here
+    public static void main(String[] args)throws IOException {
+        // Write your code.
+
+        int t = 1;
+        while (t-- > 0) {
+            n = in();
+            int q = in();
+            int[] a = an(n);
+            Query[] queries = new Query[q];
+
+            for (int i = 0; i < q; i++) {
+                queries[i] = new Query(in() - 1, in() - 1, i);
+            }
+
+            // APPLY MO's Algorithm - Square Root Decomposition
+            // Sort based on blocks, if equal based on r (non-decreasing)
+
+            int block_size = (int) Math.sqrt(1.0D * n);
+            Comparator<Query> c1 = (q1, q2) -> {
+                if ((q1.l / block_size) == (q2.l / block_size))
+                    return q1.r - q2.r;
+                return (q1.l / block_size) - (q2.l / block_size);
+            };
+
+            Arrays.sort(queries, c1);
+
+            int start = 0;
+            int end = 0;
+
+            int ans = 0;
+
+            int count[] = new int[MAX+1];
+            for(int i = 0; i < q; i++){
+
+                int L = queries[i].l;
+                int R = queries[i].r;
+
+                while(end <= R){
+                    if(a[end] <= n) {
+                        count[a[end]]++;
+                        if(count[a[end]] == a[end])
+                            ans++;
+                        else if(count[a[end]] ==  (a[end] + 1))
+                            ans--;
+                    }
+                    end++;
+                }
+
+                while(end > R + 1){
+                    end--;
+                    if(a[end] <= n){
+                        count[a[end]]--;
+                        if(count[a[end]] == a[end])
+                            ans++;
+                        else if(count[a[end]] == (a[end] - 1))
+                            ans--;
+                    }
+                }
+
+                while(start < L){
+                    if(a[start] <= n){
+                        count[a[start]]--;
+                        if(count[a[start]] == a[start])
+                            ans++;
+                        else if(count[a[start]] == (a[start]-1))
+                            ans--;
+                    }
+                    start++;
+                }
+
+                while(start > L){
+                    start--;
+                    if(a[start] <= n){
+                        count[a[start]]++;
+                        if(count[a[start]] == a[start])
+                            ans++;
+                        else if(count[a[start]] == (a[start]+1))
+                            ans--;
+                    }
+                }
+
+                queries[i].setAnswer(ans);
+            }
+
+            c1 = (q1, q2) -> (q1.index - q2.index);
+            Arrays.sort(queries, c1);
+
+            for(Query query: queries)
+                app(query.answer+"\n");
+        }
+        out.printLine(sb);
+        out.close();
+    }
+
+    static class Query{
+        int l;
+        int r;
+        int index;
+        int answer;
+        public Query(int l, int r, int index){
+            this.l = l;
+            this.r = r;
+            this.index = index;
+        }
+
+        public void setAnswer(int answer){
+            this.answer = answer;
+        }
+
+        @Override
+        public String toString(){
+            return "("+(l+1)+","+(r+1)+")"+" Query Number: "+index;
+        }
+    }
+
+    static class Pair{
+        int x, y;
+        public Pair(int x, int y){
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public String toString(){
+            return "("+x+","+y+")";
+        }
+    }
+
+    static class DisjointSet{
+        int[] parent;
+        int[] rank;
+        int size;
+
+        public DisjointSet(int n){
+            this.parent = new int[n];
+            this.rank = new int[n];
+            this.size = n;
+            for(int i = 0; i < n; i++)
+                parent[i] = i;
+        }
+
+        public int findParent(int x){
+            if(parent[x] != x){
+                return parent[x] = findParent(parent[x]);
+            }
+            return parent[x];
+        }
+
+        public boolean inSameComponents(int x, int y){
+            int parentX = findParent(x);
+            int parentY = findParent(y);
+            return parentX == parentY;
+        }
+
+        public int mergeComponents(int x, int y){
+            int parentX = findParent(x);
+            int parentY = findParent(y);
+            if(parentX == parentY) {
+                return 0; // merge failed as in the same components hence no change in components
+            }
+            if(rank[parentX] < rank[parentY]){
+                parent[parentX] = parentY;
+            }
+            else if(rank[parentX] > rank[parentY]){
+                parent[parentY] = parentX;
+            }
+            else{
+                // merge component of y to x.
+                parent[parentY] = parentX;
+                rank[parentX]++;
+            }
+            return 1; // merge successful - decrease in merge components
+        }
+
+        public int countComponents(){
+            int count = 0;
+            for(int i = 0; i < size; i++)
+                if(parent[i] == i) count++;
+            return count;
+        }
+
+        public TreeMap<Integer, List<Integer>> getComponents(){
+            TreeMap<Integer, List<Integer>> componentMap = new TreeMap<>();
+
+            for(int i = 0; i < size; i++){
+                List<Integer> componentElements = componentMap.getOrDefault(parent[i], new ArrayList<>());
+                componentElements.add(i);
+                componentMap.put(parent[i], componentElements);
+            }
+
+            return componentMap;
+        }
+
+        public Set<Integer> getComponentsWithNode(int x){
+            HashSet<Integer> set = new HashSet<>();
+            int parentX = findParent(x);
+            for(int i = 0; i < n; i++){
+                if(parent[i] == parentX){
+                    set.add(i);
+                }
+            }
+            return set;
+        }
+    }
+
+    public static String atsi(int[] a){
+        return Arrays.toString(a);
+    }
+
+    public static String atsl(long[] a){
+        return Arrays.toString(a);
+    }
+
+    public static long gcd(long a, long b){
+        if(b == 0) return a;
+        return gcd(b, a % b);
+    }
+
+    public static int gcd(int a, int b){
+        if(b == 0) return a;
+        return gcd(b, a % b);
+    }
+
+    public static int[] an(int n) {
+        int[] ar =new int[n];
+        for(int i=0;i<n;i++)
+            ar[i]=in();
+        return ar;
+    }
+
+    public static long[] lan(int n) {
+        long[] ar =new long[n];
+        for(int i=0;i<n;i++)
+            ar[i]=lin();
+        return ar;
+    }
+
+    public static String atos(Object[] ar) {
+        return Arrays.toString(ar);
+    }
+
+    public static int in() {
+        return in.readInt();
+    }
+
+    public static long lin() {
+        return in.readLong();
+    }
+
+    public static String sn() {
+        return in.readString();
+    }
+
+    public static void prln(Object o) {
+        out.printLine(o);
+    }
+
+    public static void prn(Object o) {
+        out.print(o);
+    }
+
+    public static void app(Object o) {
+        sb.append(o);
+    }
+
+
+    static class InputReader {
+        private final InputStream stream;
+        private final byte[] buf = new byte[1024];
+        private int curChar;
+        private int numChars;
+        private SpaceCharFilter filter;
+
+        public InputReader(InputStream stream) {
+            this.stream = stream;
+        }
+
+        public int read() {
+            if (numChars == -1)
+                throw new InputMismatchException();
+            if (curChar >= numChars) {
+                curChar = 0;
+                try {
+                    numChars = stream.read(buf);
+                } catch (IOException e) {
+                    throw new InputMismatchException();
+                }
+                if (numChars <= 0)
+                    return -1;
+            }
+            return buf[curChar++];
+        }
+
+        public int readInt() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            int res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public long readLong() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            int sgn = 1;
+            if (c == '-') {
+                sgn = -1;
+                c = read();
+            }
+            long res = 0;
+            do {
+                if (c < '0' || c > '9')
+                    throw new InputMismatchException();
+                res *= 10;
+                res += c - '0';
+                c = read();
+            } while (!isSpaceChar(c));
+            return res * sgn;
+        }
+
+        public String readString() {
+            int c = read();
+            while (isSpaceChar(c))
+                c = read();
+            StringBuilder res = new StringBuilder();
+            do {
+                res.appendCodePoint(c);
+                c = read();
+            } while (!isSpaceChar(c));
+            return res.toString();
+        }
+
+        public boolean isSpaceChar(int c) {
+            if (filter != null)
+                return filter.isSpaceChar(c);
+            return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == -1;
+        }
+
+        public String next() {
+            return readString();
+        }
+
+        public interface SpaceCharFilter {
+            boolean isSpaceChar(int ch);
+        }
+    }
+
+    static class OutputWriter {
+        private final PrintWriter writer;
+
+        public OutputWriter(OutputStream outputStream) {
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(outputStream)));
+        }
+
+        public OutputWriter(Writer writer) {
+            this.writer = new PrintWriter(writer);
+        }
+
+        public void print(Object...objects) {
+            for (int i = 0; i < objects.length; i++) {
+                if (i != 0)
+                    writer.print(' ');
+                writer.print(objects[i]);
+            }
+        }
+
+        public void printLine(Object...objects) {
+            print(objects);
+            writer.println();
+        }
+
+        public void close() {
+            writer.close();
+        }
+    }
+}
